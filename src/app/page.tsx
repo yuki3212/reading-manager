@@ -1,34 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 type Book = {
   id: number;
   title: string;
   author: string;
   rating: number;
-  finishedAt: string;
+  finished_at: string;
 };
 
-const initialBooks: Book[] = [
-  {
-    id: 1,
-    title: "コンビニ人間",
-    author: "村田沙耶香",
-    rating: 4,
-    finishedAt: "2026-08-10",
-  },
-  {
-    id: 2,
-    title: "悪意",
-    author: "東野圭吾",
-    rating: 5,
-    finishedAt: "2026-08-05",
-  },
-];
-
 export default function Home() {
-  const [books, setBooks] = useState<Book[]>(initialBooks);
+  const [books, setBooks] = useState<Book[]>([]);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBookId, setEditingBookId] = useState<number | null>(null);
@@ -36,23 +20,47 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [rating, setRating] = useState(5);
-  const [finishedAt, setFinishedAt] = useState("");
+  const [finishedAt, setFinishedAt] = useState(
+    new Date().toISOString().split("T")[0],
+  );
 
+  // Supabaseから本を取得
+  useEffect(() => {
+    const loadBooks = async () => {
+      const { data, error } = await supabase
+        .from("books")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("本の取得に失敗しました:", error);
+        return;
+      }
+
+      setBooks(data);
+    };
+
+    loadBooks();
+  }, []);
+
+  // フォームをリセット
   const resetForm = () => {
     setTitle("");
     setAuthor("");
     setRating(5);
-    setFinishedAt("");
+    setFinishedAt(new Date().toISOString().split("T")[0]);
     setEditingBookId(null);
     setIsFormOpen(false);
   };
 
-  const handleSubmit = () => {
+  // 本を追加・編集
+  const handleSubmit = async () => {
     if (!title.trim() || !author.trim() || !finishedAt) {
       return;
     }
 
     if (editingBookId !== null) {
+      // 編集はまだReact側だけ
       setBooks((currentBooks) =>
         currentBooks.map((book) =>
           book.id === editingBookId
@@ -61,35 +69,47 @@ export default function Home() {
                 title: title.trim(),
                 author: author.trim(),
                 rating,
-                finishedAt,
+                finished_at: finishedAt,
               }
             : book,
         ),
       );
     } else {
-      const newBook: Book = {
-        id: Date.now(),
-        title: title.trim(),
-        author: author.trim(),
-        rating,
-        finishedAt,
-      };
+      // Supabaseに本を追加
+      const { data, error } = await supabase
+        .from("books")
+        .insert({
+          title: title.trim(),
+          author: author.trim(),
+          rating,
+          finished_at: finishedAt,
+        })
+        .select()
+        .single();
 
-      setBooks((currentBooks) => [...currentBooks, newBook]);
+      if (error) {
+        console.error("本の追加に失敗しました:", error);
+        return;
+      }
+
+      // 追加した本を画面にも反映
+      setBooks((currentBooks) => [data, ...currentBooks]);
     }
 
     resetForm();
   };
 
+  // 編集フォームを開く
   const handleEdit = (book: Book) => {
     setEditingBookId(book.id);
     setTitle(book.title);
     setAuthor(book.author);
     setRating(book.rating);
-    setFinishedAt(book.finishedAt);
+    setFinishedAt(book.finished_at);
     setIsFormOpen(true);
   };
 
+  // 本を削除
   const handleDelete = (id: number) => {
     const confirmed = window.confirm("この本を削除しますか？");
 
@@ -97,6 +117,7 @@ export default function Home() {
       return;
     }
 
+    // 現在は画面からだけ削除
     setBooks((currentBooks) =>
       currentBooks.filter((book) => book.id !== id),
     );
@@ -109,6 +130,7 @@ export default function Home() {
           <h1 className="text-2xl font-bold text-gray-900">
             読書管理
           </h1>
+
           <p className="mt-1 text-sm text-gray-500">
             読んだ本を記録する
           </p>
@@ -137,6 +159,7 @@ export default function Home() {
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   タイトル
                 </label>
+
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
@@ -149,6 +172,7 @@ export default function Home() {
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   著者
                 </label>
+
                 <input
                   value={author}
                   onChange={(event) => setAuthor(event.target.value)}
@@ -161,6 +185,7 @@ export default function Home() {
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   評価
                 </label>
+
                 <select
                   value={rating}
                   onChange={(event) =>
@@ -180,6 +205,7 @@ export default function Home() {
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   読了日
                 </label>
+
                 <input
                   type="date"
                   value={finishedAt}
@@ -234,7 +260,7 @@ export default function Home() {
 
               <div className="mt-3 flex items-center justify-between">
                 <p className="text-xs text-gray-400">
-                  読了：{book.finishedAt}
+                  読了：{book.finished_at}
                 </p>
 
                 <div className="flex gap-3">
