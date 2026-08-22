@@ -22,6 +22,7 @@ type BookInput = {
 
 export default function Home() {
   const [books, setBooks] = useState<Book[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
 
@@ -117,6 +118,12 @@ export default function Home() {
     );
   };
 
+  const filteredBooks = books.filter((book) =>
+    `${book.title} ${book.author}`
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase()),
+  );
+
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-8">
       <div className="mx-auto max-w-2xl">
@@ -139,6 +146,16 @@ export default function Home() {
           </button>
         </div>
 
+      <div className="mb-6">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="タイトル・著者で検索"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+        />
+      </div>
+
         {isFormOpen && (
           <BookForm
             editingBook={editingBook}
@@ -148,7 +165,7 @@ export default function Home() {
         )}
 
         <section className="space-y-3">
-          {books.map((book) => (
+          {filteredBooks.map((book) => (
             <BookCard
               key={book.id}
               book={book}
