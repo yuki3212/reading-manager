@@ -118,14 +118,23 @@ export default function Home() {
   };
 
   // 本を削除
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     const confirmed = window.confirm("この本を削除しますか？");
 
     if (!confirmed) {
       return;
     }
 
-    // 現在は画面からだけ削除
+    const { error } = await supabase
+      .from("books")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("本の削除に失敗しました:", error);
+      return;
+    }
+
     setBooks((currentBooks) =>
       currentBooks.filter((book) => book.id !== id),
     );
