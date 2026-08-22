@@ -11,6 +11,7 @@ type Book = {
   author: string;
   rating: number;
   finished_at: string;
+  status: "unread" | "reading" | "completed";
 };
 
 type BookInput = {
@@ -18,11 +19,15 @@ type BookInput = {
   author: string;
   rating: number;
   finished_at: string;
+  status: "unread" | "reading" | "completed";
 };
 
 export default function Home() {
   const [books, setBooks] = useState<Book[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">(
+    "newest",
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
 
@@ -118,11 +123,20 @@ export default function Home() {
     );
   };
 
-  const filteredBooks = books.filter((book) =>
-    `${book.title} ${book.author}`
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase()),
-  );
+  const filteredBooks = books
+    .filter((book) =>
+      `${book.title} ${book.author}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()),
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.finished_at).getTime();
+      const dateB = new Date(b.finished_at).getTime();
+
+      return sortOrder === "newest"
+        ? dateB - dateA
+        : dateA - dateB;
+    });
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-8">
@@ -146,15 +160,30 @@ export default function Home() {
           </button>
         </div>
 
-      <div className="mb-6">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="タイトル・著者で検索"
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-        />
-      </div>
+        <div className="mb-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="タイトル・著者で検索"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div className="mb-6 flex justify-end">
+          <select
+            value={sortOrder}
+            onChange={(event) =>
+              setSortOrder(
+                event.target.value as "newest" | "oldest",
+              )
+            }
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="newest">読了日が新しい順</option>
+            <option value="oldest">読了日が古い順</option>
+          </select>
+        </div>
 
         {isFormOpen && (
           <BookForm

@@ -8,6 +8,7 @@ type Book = {
   author: string;
   rating: number;
   finished_at: string;
+  status: "unread" | "reading" | "completed"
 };
 
 type BookFormProps = {
@@ -17,6 +18,7 @@ type BookFormProps = {
     author: string;
     rating: number;
     finished_at: string;
+    status: "unread" | "reading" | "completed";
   }) => void;
   onCancel: () => void;
 };
@@ -33,9 +35,16 @@ export default function BookForm({
     editingBook?.finished_at ??
       new Date().toISOString().split("T")[0],
   );
+  const [status, setStatus] = useState<
+    "unread" | "reading" | "completed"
+  >(editingBook?.status ?? "completed");
 
   const handleSubmit = () => {
-    if (!title.trim() || !author.trim() || !finishedAt) {
+    if (!title.trim() || !author.trim()) {
+      return;
+    }
+
+    if (status === "completed" && !finishedAt) {
       return;
     }
 
@@ -44,6 +53,7 @@ export default function BookForm({
       author: author.trim(),
       rating,
       finished_at: finishedAt,
+      status,
     });
   };
 
@@ -99,17 +109,40 @@ export default function BookForm({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            読了日
+            読書ステータス
           </label>
-          <input
-            type="date"
-            value={finishedAt}
+
+          <select
+            value={status}
             onChange={(event) =>
-              setFinishedAt(event.target.value)
+              setStatus(
+                event.target.value as "unread" | "reading" | "completed",
+              )
             }
             className="w-full rounded-lg border border-gray-300 px-3 py-2"
-          />
+          >
+            <option value="unread">未読</option>
+            <option value="reading">読書中</option>
+            <option value="completed">読了</option>
+          </select>
         </div>
+
+        {status === "completed" && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              読了日
+            </label>
+
+            <input
+              type="date"
+              value={finishedAt}
+              onChange={(event) =>
+                setFinishedAt(event.target.value)
+              }
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+        )}
 
         <div className="flex gap-2">
           <button
