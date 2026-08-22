@@ -59,22 +59,30 @@ export default function Home() {
       return;
     }
 
-    if (editingBookId !== null) {
-      // 編集はまだReact側だけ
-      setBooks((currentBooks) =>
-        currentBooks.map((book) =>
-          book.id === editingBookId
-            ? {
-                ...book,
-                title: title.trim(),
-                author: author.trim(),
-                rating,
-                finished_at: finishedAt,
-              }
-            : book,
-        ),
-      );
-    } else {
+  if (editingBookId !== null) {
+    const { data, error } = await supabase
+      .from("books")
+      .update({
+        title: title.trim(),
+        author: author.trim(),
+        rating,
+        finished_at: finishedAt,
+      })
+      .eq("id", editingBookId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("本の更新に失敗しました:", error);
+      return;
+    }
+
+    setBooks((currentBooks) =>
+      currentBooks.map((book) =>
+        book.id === editingBookId ? data : book,
+      ),
+    );
+  } else {
       // Supabaseに本を追加
       const { data, error } = await supabase
         .from("books")
